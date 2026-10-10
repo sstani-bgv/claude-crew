@@ -23,8 +23,14 @@ test('with the panel closed and nothing running, the strip offers a button to re
   mock.clock(on)
   on('agent.spawn', () => ({ model: 'claude-haiku-5-5', agentId: 'a2' }))
   on('ui.panes', () => ({ value: [] }))
+  on('ui.render', { component: 'AbovePrompt' }, ($, e) => {
+    const { Text } = $.ui.resolve(e)
+    return <Text key="engine">engine</Text>
+  })
   await $.agent.spawn({ prompt: 'go', description: 'Build a thing', subagentType: 'general-purpose' } as never)
   const strip = await $.ui.mount({ plugin: 'crew', surface: 'desktop', component: 'AbovePrompt', props: { hasSurvey: false, bodyColumns: 120 } as never })
   await strip.press({ key: 'savvy-dismiss' })
   expect(await strip.find({ key: 'crew-reopen' })).toBeDefined()
+  await strip.press({ key: 'crew-reopen-hide' })
+  expect(await strip.find({ key: 'crew-reopen' })).toBeUndefined()
 })

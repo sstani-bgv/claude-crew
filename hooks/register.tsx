@@ -13,6 +13,7 @@ const panel = atom({ plugin: 'crew', key: 'panel' } as const, {
   autoOpenedFor: '',
   batchStart: 0,
   bandDismissedFor: -1,
+  reopenHiddenFor: -1,
 })
 const now = atom({ plugin: 'crew', key: 'now' } as const, 0)
 
@@ -1216,21 +1217,45 @@ export const register: Register = (on, options) => {
     const f = savvy ?? batchFlow(list, await read($, panel))
     if (e.props.hasSurvey) return next(e)
     if (f === null) {
-      // Nothing in progress and the panel closed: a small crab button brings it back.
-      if (!list.length || (await $.ui.panes()).some(p => p.id === PANE)) return next(e)
+      // Nothing in progress and the panel closed: a short summary that brings it back.
+      const pnl = await read($, panel)
+      if (!list.length || pnl.reopenHiddenFor === pnl.batchStart) return next(e)
+      if ((await $.ui.panes()).some(p => p.id === PANE)) return next(e)
       const ui = $.ui.resolve(e)
-      const { Box, Button } = ui
-      const reopen = <Button key="crew-reopen" label={`${tr().pane} ×${list.length}`} plain onPress={() => void togglePane($)} />
-      if (!('Svg' in ui)) return reopen
+      const { Box, Button, Text } = ui
+      const t = totals(list, Math.max(await read($, now), ...list.map(a => a.startedAt)))
+      const summary = `${list.length} ${tr().agentsCount} · ${fmtTokens(t.tokens)} ${tr().tokensWord} · ${fmtTime(t.time)}`
+      const reopen = <Button key="crew-reopen" label={tr().pane} plain onPress={() => void togglePane($)} />
+      const hide = (
+        <Button
+          key="crew-reopen-hide"
+          label="✕"
+          plain
+          role="dismiss"
+          onPress={() => update($, panel, prev => ({ ...prev, reopenHiddenFor: prev.batchStart }))}
+        />
+      )
+      if (!('Svg' in ui)) {
+        return (
+          <Box flexDirection="row" gap={2}>
+            <Text color={CLAY}>▣</Text>
+            <Text dimColor>{summary}</Text>
+            {reopen}
+            {hide}
+          </Box>
+        )
+      }
       const { Svg } = ui
+      const W = Math.round(34 + textWidth(summary, 12.5) + 8)
+      const body = `${crab(0, 1, 'other', false, false, 0.8)}<text class="s" x="32" y="16" font-family="${FONT}" font-size="12.5" font-variant-numeric="tabular-nums">${xml(summary)}</text>`
       return (
         <Box flexDirection="row" alignItems="center" gap={1}>
-          <Svg source={svg(26, 24, crab(0, 0, 'other', false, false, 0.85))} alt="" width={26} height={24} />
+          <Svg source={svg(W, 24, body)} alt={summary} width={W} height={24} />
           {reopen}
+          {hide}
         </Box>
       )
     }
-
     const ui = $.ui.resolve(e)
     const { Box, Text, Button } = ui
     const crew = savvy ? list.length + plannedOf(f, list).length : f.total

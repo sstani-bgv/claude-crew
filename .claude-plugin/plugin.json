@@ -1,6 +1,6 @@
 {
   "name": "crew",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Agents panel with pixel crabs and a progress strip above the prompt, for any subagents. Based on savvy-progress by johnnyvizz (MIT).",
   "types": "./types/index.d.ts",
   "userConfig": {

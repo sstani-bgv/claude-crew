@@ -48,6 +48,8 @@ export type Panel = {
   batchStart: number
   /** The batchStart whose strip above the prompt was dismissed; -1 for none. */
   bandDismissedFor: number
+  /** The batchStart whose reopen strip was hidden; -1 for none. */
+  reopenHiddenFor: number
 }
 
 declare module 'claude-code' {
