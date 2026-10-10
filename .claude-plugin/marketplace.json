@@ -1,0 +1,5 @@
+{
+  "name": "claude-crew",
+  "owner": { "name": "sstani-bgv" },
+  "plugins": [{ "name": "crew", "source": "./" }]
+}
