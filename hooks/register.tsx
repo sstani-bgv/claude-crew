@@ -1,7 +1,7 @@
 // Based on savvy-progress by johnnyvizz (MIT): https://github.com/johnnyvizz/claude-kit/tree/main/plugins/savvy-progress
 // Changed: plain subagents get a costume by their task, and drive the strip above the prompt.
 import { atom, read, update } from 'claude-code'
-import type { EngineInterface, Register } from 'claude-code'
+import type { EngineInterface, Register, RenderElement } from 'claude-code'
 
 import type { AgentRun, Flow, Panel, Phase, PlannedTask } from '../types'
 
@@ -1212,6 +1212,11 @@ export const register: Register = (on, options) => {
   })
 
   on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    // Other mods draw here too: keep what they draw below ours instead of hiding it.
+    const withBelow = async (mine: RenderElement) => {
+      const { Box: Stack } = $.ui.resolve(e)
+      return <Stack flexDirection="column">{mine}{await next(e)}</Stack>
+    }
     const savvy = await read($, flow)
     const list = await read($, agents)
     const f = savvy ?? batchFlow(list, await read($, panel))
@@ -1236,7 +1241,7 @@ export const register: Register = (on, options) => {
         />
       )
       if (!('Svg' in ui)) {
-        return (
+        return withBelow(
           <Box flexDirection="row" gap={2}>
             <Text color={CLAY}>▣</Text>
             <Text dimColor>{summary}</Text>
@@ -1248,7 +1253,7 @@ export const register: Register = (on, options) => {
       const { Svg } = ui
       const W = Math.round(34 + textWidth(summary, 12.5) + 8)
       const body = `${crab(0, 1, 'other', false, false, 0.8)}<text class="s" x="32" y="16" font-family="${FONT}" font-size="12.5" font-variant-numeric="tabular-nums">${xml(summary)}</text>`
-      return (
+      return withBelow(
         <Box flexDirection="row" alignItems="center" gap={1}>
           <Svg source={svg(W, 24, body)} alt={summary} width={W} height={24} />
           {reopen}
@@ -1283,7 +1288,7 @@ export const register: Register = (on, options) => {
       // About 8 CSS px per reported column; the rest is the count, the dismiss
       // and their gaps. No floor above the slot: a row wider than it would wrap.
       const width = Math.max(180, Math.min(1600, (e.props.bodyColumns || 100) * 8 - 96))
-      return (
+      return withBelow(
         <Box flexDirection="row" alignItems="center" gap={1}>
           <Svg source={rowSvg(f, width, isWorking, costume)} alt={`${f.title}: ${label(f)}, ${percent}`} width={width} height={H} />
           {crewButton}
@@ -1295,7 +1300,7 @@ export const register: Register = (on, options) => {
     const cols = e.props.bodyColumns
     const titleW = Math.max(8, Math.min(30, f.title.length + 2, Math.floor(cols / 3)))
     const width = Math.max(6, Math.min(40, cols - titleW - 32))
-    return (
+    return withBelow(
       <Box flexDirection="row" gap={2}>
         <Box width={titleW} flexShrink={0}>
           <Text color={f.isFinished ? DONE : ACCENT}>● </Text>

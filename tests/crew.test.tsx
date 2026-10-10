@@ -3,6 +3,11 @@ import { expect, mock, test } from 'claude-code/testing'
 test('a plain subagent gets a costume, a row in the panel and the strip above the prompt', async ($, on) => {
   mock.clock(on)
   on('agent.spawn', () => ({ model: 'claude-haiku-5-5', agentId: 'a1' }))
+  // Another mod's strip beneath ours: it must stay visible.
+  on('ui.render', { component: 'AbovePrompt' }, ($, e) => {
+    const { Text } = $.ui.resolve(e)
+    return <Text key="other-mod">other mod's strip</Text>
+  })
   await $.agent.spawn({ prompt: 'go', description: 'Research competitor launches', subagentType: 'general-purpose' } as never)
 
   const pane = await $.ui.mount({ plugin: 'crew', surface: 'desktop', component: 'Pane', props: { bodyColumns: 50 } as never, requestId: 'savvy-agents' })
@@ -13,7 +18,9 @@ test('a plain subagent gets a costume, a row in the panel and the strip above th
   void row
 
   const band = await $.ui.mount({ plugin: 'crew', surface: 'desktop', component: 'AbovePrompt', props: { hasSurvey: false, bodyColumns: 120 } as never })
-  expect(JSON.stringify(await band.drawn())).toContain('Tasks 0/1')
+  const drawn = JSON.stringify(await band.drawn())
+  expect(drawn).toContain('Tasks 0/1')
+  expect(drawn).toContain("other mod's strip")
 
   const term = await $.ui.mount({ plugin: 'crew', surface: 'terminal', component: 'Pane', props: { bodyColumns: 50 } as never, requestId: 'savvy-agents' })
   expect(await term.find({ type: 'Text', text: /researcher/ })).toBeDefined()
